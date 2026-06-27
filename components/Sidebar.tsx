@@ -15,6 +15,8 @@ import {
   History,
   LogOut,
   Orbit,
+  CalendarRange,
+  Eye,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -26,11 +28,13 @@ export default function Sidebar() {
   const commonLinks = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'User Management', href: '/users', icon: Users },
+    { name: 'Bookings Log', href: '/bookings', icon: CalendarRange },
     { name: 'Disputes Roster', href: '/disputes', icon: AlertOctagon },
   ];
 
   const superAdminLinks = [
     { name: 'KYC Verification', href: '/super-admin/kyc', icon: ShieldCheck },
+    { name: 'Listings Verifier', href: '/super-admin/listings', icon: Eye },
     { name: 'Staff Management', href: '/super-admin/staff', icon: UserCheck },
     { name: 'Payouts & Ledger', href: '/super-admin/payouts', icon: Coins },
     { name: 'System Settings', href: '/super-admin/settings', icon: Settings },

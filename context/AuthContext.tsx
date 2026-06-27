@@ -95,7 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         // Set Cookie (valid for 1 day)
-        Cookies.set('admin_token', tokens.accessToken, { expires: 1, secure: true, sameSite: 'strict' });
+        Cookies.set('admin_token', tokens.accessToken, {
+          expires: 1,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+        });
         
         setUser({
           id: profile._id || profile.id,

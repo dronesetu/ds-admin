@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../utils/api';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
 import { Card } from '../../../components/ui/Card';
@@ -33,6 +35,9 @@ interface DisputeItem {
 }
 
 export default function DisputesPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+
   const [disputes, setDisputes] = useState<DisputeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +50,7 @@ export default function DisputesPage() {
   const [resolveModalOpen, setResolveModalOpen] = useState(false);
   const [resolutionStatus, setResolutionStatus] = useState<'under_review' | 'resolved' | 'rejected'>('resolved');
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [refundAmount, setRefundAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -73,6 +79,7 @@ export default function DisputesPage() {
     setSelectedDispute(dispute);
     setResolutionStatus(dispute.status === 'open' ? 'resolved' : (dispute.status as any));
     setResolutionNotes(dispute.resolutionNotes || '');
+    setRefundAmount('');
     setActionError(null);
     setResolveModalOpen(true);
   };
@@ -89,6 +96,19 @@ export default function DisputesPage() {
 
     setIsSubmitting(true);
     try {
+      // If super_admin and refundAmount is specified
+      const refundVal = Number(refundAmount);
+      if (isSuperAdmin && resolutionStatus === 'resolved' && refundVal > 0) {
+        const refundRes = await api.post<any>(`/super-admin/bookings/${selectedDispute.bookingId}/refund`, {
+          refundAmount: refundVal,
+          reason: resolutionNotes.trim(),
+        });
+
+        if (!refundRes.success) {
+          throw new Error(refundRes.message || 'Administrative refund failed.');
+        }
+      }
+
       const response = await api.put<any>(`/admin/disputes/${selectedDispute._id}`, {
         status: resolutionStatus,
         resolutionNotes,
@@ -104,10 +124,10 @@ export default function DisputesPage() {
         } : d));
         setResolveModalOpen(false);
       } else {
-        setActionError(response.message);
+        setActionError(response.message || 'Verdict registration failed.');
       }
     } catch (err: any) {
-      setActionError(err.message || 'Failed to record resolution.');
+      setActionError(err.message || 'Something went wrong while recording settlement.');
     } finally {
       setIsSubmitting(false);
     }
@@ -217,8 +237,10 @@ export default function DisputesPage() {
           <TableBody>
             {filteredDisputes.map((d) => (
               <TableRow key={d._id}>
-                <TableCell className="font-mono text-xs text-zinc-400 select-all">
-                  {d.bookingId}
+                <TableCell className="font-mono text-xs select-all">
+                  <Link href={`/bookings?search=${d.bookingId}`} className="text-emerald-400 hover:underline">
+                    {d.bookingId}
+                  </Link>
                 </TableCell>
                 <TableCell>
                   <p className="text-xs font-semibold text-zinc-300">{getUserName(d.raisedBy)}</p>
@@ -266,7 +288,11 @@ export default function DisputesPage() {
             <div className="flex justify-between items-start gap-4 border-b border-zinc-800 pb-4">
               <div>
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Booking Link</span>
-                <p className="font-mono text-xs font-semibold text-zinc-300 select-all mt-0.5">{selectedDispute.bookingId}</p>
+                <p className="font-mono text-xs font-semibold select-all mt-0.5">
+                  <Link href={`/bookings?search=${selectedDispute.bookingId}`} className="text-emerald-400 hover:underline inline-flex items-center gap-1">
+                    {selectedDispute.bookingId} <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </p>
               </div>
               <div className="text-right">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">Case status</span>
@@ -357,6 +383,25 @@ export default function DisputesPage() {
                   </button>
                 ))}
               </div>
+
+              {resolutionStatus === 'resolved' && isSuperAdmin && (
+                <div className="bg-zinc-950/40 rounded-xl border border-zinc-900 p-4 space-y-3">
+                  <p className="font-semibold text-zinc-350 text-xs">Administrative Payout Overrides</p>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+                      Force Refund Amount (INR)
+                    </label>
+                    <input
+                      type="number"
+                      value={refundAmount}
+                      onChange={(e) => setRefundAmount(e.target.value)}
+                      placeholder="e.g. 1500 (leave blank or 0 for no refund)"
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950/60 p-2.5 text-xs text-zinc-200 outline-none focus:border-emerald-500/50"
+                    />
+                    <p className="text-[10px] text-zinc-500 mt-1">Saves details to ledger and cancels booking status if refund is processed.</p>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">

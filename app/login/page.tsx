@@ -122,29 +122,31 @@ export default function LoginPage() {
           </form>
 
           {/* Quick Fills for Dev Seeding */}
-          <div className="mt-8 border-t border-zinc-800/80 pt-6">
-            <p className="text-center text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">
-              Local Development Seed Accounts
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('super')}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-850 bg-zinc-950/30 p-3 hover:bg-zinc-900/60 transition-colors group text-center"
-              >
-                <span className="text-xs font-semibold text-indigo-400 group-hover:text-indigo-300">Super Admin</span>
-                <span className="mt-1 text-[10px] text-zinc-500">Full Access Configs</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickFill('staff')}
-                className="flex flex-col items-center justify-center rounded-xl border border-zinc-850 bg-zinc-950/30 p-3 hover:bg-zinc-900/60 transition-colors group text-center"
-              >
-                <span className="text-xs font-semibold text-emerald-400 group-hover:text-emerald-300">Admin Staff</span>
-                <span className="mt-1 text-[10px] text-zinc-500">General Operations</span>
-              </button>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-8 border-t border-zinc-800/80 pt-6">
+              <p className="text-center text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">
+                Local Development Seed Accounts
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('super')}
+                  className="flex flex-col items-center justify-center rounded-xl border border-zinc-850 bg-zinc-950/30 p-3 hover:bg-zinc-900/60 transition-colors group text-center"
+                >
+                  <span className="text-xs font-semibold text-indigo-400 group-hover:text-indigo-300">Super Admin</span>
+                  <span className="mt-1 text-[10px] text-zinc-500">Full Access Configs</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('staff')}
+                  className="flex flex-col items-center justify-center rounded-xl border border-zinc-850 bg-zinc-950/30 p-3 hover:bg-zinc-900/60 transition-colors group text-center"
+                >
+                  <span className="text-xs font-semibold text-emerald-400 group-hover:text-emerald-300">Admin Staff</span>
+                  <span className="mt-1 text-[10px] text-zinc-500">General Operations</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

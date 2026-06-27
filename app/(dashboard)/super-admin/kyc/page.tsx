@@ -41,6 +41,19 @@ interface KycProviderItem {
   }>;
 }
 
+const maskAadhaar = (val: string) => {
+  if (!val) return '';
+  const clean = val.replace(/\s|-/g, '');
+  if (clean.length < 4) return val;
+  return `•••• •••• ${clean.slice(-4)}`;
+};
+
+const maskPan = (val: string) => {
+  if (!val) return '';
+  if (val.length < 4) return val;
+  return `${val.slice(0, 2)}••••••${val.slice(-2)}`;
+};
+
 export default function KycPage() {
   const [providers, setProviders] = useState<KycProviderItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,8 +209,8 @@ export default function KycPage() {
                   <p className="text-xs font-semibold text-zinc-300">{getOwnerName(p)}</p>
                   <p className="text-[10px] text-zinc-500">{getOwnerEmail(p)}</p>
                 </TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">{p.kyc.aadhaarNumber}</TableCell>
-                <TableCell className="font-mono text-xs text-zinc-400">{p.kyc.panNumber}</TableCell>
+                <TableCell className="font-mono text-xs text-zinc-400">{maskAadhaar(p.kyc.aadhaarNumber || '')}</TableCell>
+                <TableCell className="font-mono text-xs text-zinc-400">{maskPan(p.kyc.panNumber || '')}</TableCell>
                 <TableCell className="font-mono text-xs text-zinc-400">{p.kyc.businessLicense}</TableCell>
                 <TableCell className="text-right">
                   <button
@@ -247,11 +260,11 @@ export default function KycPage() {
               <div className="grid grid-cols-3 gap-3 bg-zinc-950/40 rounded-xl border border-zinc-900 p-4">
                 <div>
                   <p className="text-[10px] text-zinc-500">Aadhaar (UIDAI)</p>
-                  <p className="font-mono text-xs font-bold text-zinc-300 mt-1">{selectedProvider.kyc.aadhaarNumber}</p>
+                  <p className="font-mono text-xs font-bold text-zinc-300 mt-1">{maskAadhaar(selectedProvider.kyc.aadhaarNumber || '')}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-zinc-500">PAN Card (Income Tax)</p>
-                  <p className="font-mono text-xs font-bold text-zinc-300 mt-1">{selectedProvider.kyc.panNumber}</p>
+                  <p className="font-mono text-xs font-bold text-zinc-300 mt-1">{maskPan(selectedProvider.kyc.panNumber || '')}</p>
                 </div>
                 <div>
                   <p className="text-[10px] text-zinc-500">Business License No</p>
