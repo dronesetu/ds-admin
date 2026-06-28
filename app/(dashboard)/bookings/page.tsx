@@ -68,7 +68,7 @@ export default function BookingsManagerPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [search, setSearch] = useState(search);
+  const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -449,7 +449,7 @@ export default function BookingsManagerPage() {
                   <p className="text-zinc-100 font-bold mt-1">₹{selectedBooking.pricing.totalAmount?.toLocaleString('en-IN')}</p>
                 </div>
               </div>
-            </div>           </div>
+            </div>
 
             {/* Cancellation details if cancelled */}
             {selectedBooking.cancellation && (
