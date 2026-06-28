@@ -64,8 +64,14 @@ export default function PayoutsPage() {
   const [selectedPayout, setSelectedPayout] = useState<PayoutItem | null>(null);
   const [fulfillModalOpen, setFulfillModalOpen] = useState(false);
   const [fulfillStatus, setFulfillStatus] = useState<'completed' | 'failed'>('completed');
+  const [txRef, setTxRef] = useState('');
   const [isFulfilling, setIsFulfilling] = useState(false);
   const [fulfillError, setFulfillError] = useState<string | null>(null);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
 
   // Manual Wallet Adjust form
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
@@ -93,11 +99,15 @@ export default function PayoutsPage() {
     setLoadingPayouts(true);
     setError(null);
     try {
-      const params: any = {};
+      const params: any = {
+        page: page.toString(),
+        limit: limit.toString(),
+      };
       if (statusFilter) params.status = statusFilter;
-      const response = await api.get<PayoutItem[]>('/super-admin/financials/payouts', { params });
+      const response = await api.get<any>('/super-admin/financials/payouts', { params });
       if (response.success && response.data) {
-        setPayouts(response.data);
+        setPayouts(response.data.payouts || []);
+        setTotal(response.data.total || 0);
       } else {
         setError(response.message);
       }
@@ -113,12 +123,17 @@ export default function PayoutsPage() {
   }, []);
 
   useEffect(() => {
-    fetchPayouts();
+    setPage(1);
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetchPayouts();
+  }, [statusFilter, page]);
 
   const handleOpenFulfill = (payout: PayoutItem) => {
     setSelectedPayout(payout);
     setFulfillStatus('completed');
+    setTxRef('');
     setFulfillError(null);
     setFulfillModalOpen(true);
   };
@@ -131,7 +146,8 @@ export default function PayoutsPage() {
 
     try {
       const response = await api.put<any>(`/super-admin/financials/payouts/${selectedPayout._id}/status`, {
-        status: fulfillStatus
+        status: fulfillStatus,
+        txRef: txRef.trim() || undefined
       });
 
       if (response.success) {
@@ -323,7 +339,7 @@ export default function PayoutsPage() {
                     <div className="space-y-0.5 text-xs text-zinc-450">
                       <p className="flex items-center gap-1 font-mono">
                         <Landmark className="h-3.5 w-3.5 text-zinc-550 shrink-0" />
-                        {p.bankDetails.accountNumber}
+                        {p.bankDetails.accountNumber ? 'X'.repeat(Math.max(0, p.bankDetails.accountNumber.length - 4)) + p.bankDetails.accountNumber.slice(-4) : 'N/A'}
                       </p>
                       <p className="text-[10px] text-zinc-500 font-mono">IFSC: {p.bankDetails.ifsc}</p>
                     </div>
@@ -348,6 +364,29 @@ export default function PayoutsPage() {
               ))}
             </TableBody>
           </Table>
+        )}
+
+        {/* Pagination */}
+        {total > limit && (
+          <div className="flex items-center justify-between border-t border-zinc-900 pt-4 text-xs font-semibold text-zinc-400">
+            <p>Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} payouts</p>
+            <div className="flex gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-[11px] hover:bg-zinc-850 disabled:opacity-30 disabled:hover:bg-zinc-900 transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                disabled={page * limit >= total}
+                onClick={() => setPage(page + 1)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-[11px] hover:bg-zinc-850 disabled:opacity-30 disabled:hover:bg-zinc-900 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -416,6 +455,19 @@ export default function PayoutsPage() {
               >
                 Mark Transfer Failed
               </button>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
+                Transaction Reference / UTR Code
+              </label>
+              <input
+                type="text"
+                value={txRef}
+                onChange={(e) => setTxRef(e.target.value)}
+                placeholder="e.g. UTR123456789"
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/50 py-2.5 px-4 text-xs text-zinc-100 placeholder-zinc-600 outline-none focus:border-indigo-500/50"
+              />
             </div>
 
             <div className="flex gap-3">

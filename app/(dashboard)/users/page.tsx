@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { api } from '../../../utils/api';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../../components/ui/Table';
@@ -39,6 +38,7 @@ interface UserItem {
 export default function UsersPage() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'super_admin';
+  const router = useRouter();
 
   const [users, setUsers] = useState<UserItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -289,8 +289,13 @@ export default function UsersPage() {
             <TableBody>
               {users.map((u) => {
                 const isSuspended = u.isSuspended || u.isBlocked;
+                const userId = u._id || u.id;
                 return (
-                  <TableRow key={u._id || u.id}>
+                  <TableRow 
+                    key={userId}
+                    className="cursor-pointer hover:bg-zinc-900/40"
+                    onClick={() => router.push(`/users/${userId}`)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 shrink-0 rounded-full border border-zinc-800 bg-zinc-900 flex items-center justify-center font-bold text-xs text-zinc-400">
@@ -317,7 +322,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-xs text-zinc-400 flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-zinc-500" />
+                        <Calendar className="h-3.5 w-3.5 text-zinc-550" />
                         {new Date(u.createdAt || u.registeredAt || '').toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -336,9 +341,9 @@ export default function UsersPage() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={() => handleViewDetails(u)}
+                        onClick={() => router.push(`/users/${userId}`)}
                         className="inline-flex items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 transition-colors"
                         title="View Details"
                       >

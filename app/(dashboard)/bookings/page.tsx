@@ -42,12 +42,10 @@ interface BookingItem {
   bookingStatus: 'pending' | 'accepted' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'disputed' | 'payment_pending';
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
   pricing: {
-    basePrice: number;
-    addonsPrice: number;
+    baseAmount: number;
     platformFee: number;
-    gstAmount: number;
+    taxes: number;
     totalAmount: number;
-    providerPayout: number;
   };
   timeline: BookingTimeline[];
   cancellation?: {
@@ -70,9 +68,14 @@ export default function BookingsManagerPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [search, setSearch] = useState(initialSearch);
+  const [search, setSearch] = useState(search);
   const [statusFilter, setStatusFilter] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
 
   // Modal and details
   const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null);
@@ -87,14 +90,17 @@ export default function BookingsManagerPage() {
     setLoading(true);
     setError(null);
     try {
-      // Endpoint handled by SuperAdminController.getBookings (GET /api/v1/super-admin/bookings)
-      const params: any = {};
+      const params: any = {
+        page: page.toString(),
+        limit: limit.toString(),
+      };
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
 
-      const response = await api.get<BookingItem[]>('/super-admin/bookings', { params });
+      const response = await api.get<any>('/super-admin/bookings', { params });
       if (response.success && response.data) {
-        setBookings(response.data);
+        setBookings(response.data.bookings || []);
+        setTotal(response.data.total || 0);
       } else {
         setError(response.message || 'Failed to retrieve bookings history log');
       }
@@ -107,8 +113,12 @@ export default function BookingsManagerPage() {
   };
 
   useEffect(() => {
-    fetchBookings();
+    setPage(1);
   }, [statusFilter]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [statusFilter, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +180,8 @@ export default function BookingsManagerPage() {
         return <span className="rounded-full bg-zinc-900 border border-zinc-800 px-2.5 py-1 text-xs font-semibold text-zinc-400">Pending</span>;
       case 'accepted':
         return <span className="rounded-full bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 text-xs font-semibold text-indigo-400">Accepted</span>;
+      case 'payment_pending':
+        return <span className="rounded-full bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 text-xs font-semibold text-purple-400">Payment Pending</span>;
       case 'confirmed':
         return <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-400">Confirmed</span>;
       case 'in_progress':
@@ -255,6 +267,7 @@ export default function BookingsManagerPage() {
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="accepted">Accepted</option>
+            <option value="payment_pending">Payment Pending</option>
             <option value="confirmed">Confirmed</option>
             <option value="in_progress">In Flight</option>
             <option value="completed">Completed</option>
@@ -330,6 +343,29 @@ export default function BookingsManagerPage() {
         </Table>
       )}
 
+      {/* Pagination */}
+      {total > limit && (
+        <div className="flex items-center justify-between border-t border-zinc-900 pt-4 text-xs font-semibold text-zinc-400">
+          <p>Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} bookings</p>
+          <div className="flex gap-2">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-[11px] hover:bg-zinc-850 disabled:opacity-30 disabled:hover:bg-zinc-900 transition-colors"
+            >
+              Previous
+            </button>
+            <button
+              disabled={page * limit >= total}
+              onClick={() => setPage(page + 1)}
+              className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-[11px] hover:bg-zinc-850 disabled:opacity-30 disabled:hover:bg-zinc-900 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Details Modal */}
       <Modal
         isOpen={detailsModalOpen}
@@ -394,30 +430,26 @@ export default function BookingsManagerPage() {
               <div className="grid grid-cols-3 gap-3 bg-zinc-950/40 rounded-xl border border-zinc-900 p-4 font-mono">
                 <div>
                   <p className="text-[10px] text-zinc-500">Base Price</p>
-                  <p className="text-zinc-200 font-semibold mt-1">₹{selectedBooking.pricing.basePrice?.toLocaleString('en-IN')}</p>
+                  <p className="text-zinc-200 font-semibold mt-1">₹{selectedBooking.pricing.baseAmount?.toLocaleString('en-IN')}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500">Add-ons Total</p>
-                  <p className="text-zinc-200 font-semibold mt-1">₹{selectedBooking.pricing.addonsPrice?.toLocaleString('en-IN')}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-zinc-500">Platform Fee</p>
+                  <p className="text-[10px] text-zinc-550">Platform Fee</p>
                   <p className="text-zinc-200 font-semibold mt-1">₹{selectedBooking.pricing.platformFee?.toLocaleString('en-IN')}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500">GST Amount</p>
-                  <p className="text-zinc-200 font-semibold mt-1">₹{selectedBooking.pricing.gstAmount?.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-zinc-550">GST/Taxes</p>
+                  <p className="text-zinc-200 font-semibold mt-1">₹{selectedBooking.pricing.taxes?.toLocaleString('en-IN')}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500">Pilot Payout</p>
-                  <p className="text-emerald-400 font-bold mt-1">₹{selectedBooking.pricing.providerPayout?.toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-zinc-550">Pilot Payout</p>
+                  <p className="text-emerald-400 font-bold mt-1">₹{(selectedBooking.pricing.baseAmount - selectedBooking.pricing.platformFee)?.toLocaleString('en-IN')}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-zinc-500">Grand Total (Paid)</p>
+                  <p className="text-[10px] text-zinc-550">Grand Total (Paid)</p>
                   <p className="text-zinc-100 font-bold mt-1">₹{selectedBooking.pricing.totalAmount?.toLocaleString('en-IN')}</p>
                 </div>
               </div>
-            </div>
+            </div>           </div>
 
             {/* Cancellation details if cancelled */}
             {selectedBooking.cancellation && (

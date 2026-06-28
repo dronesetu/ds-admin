@@ -32,8 +32,11 @@ interface DashboardStats {
   systemStatus: string;
   stats: {
     totalUsers: number;
+    totalUsersChange: string;
     activeProviders: number;
+    activeProvidersChange: string;
     activeConsumers: number;
+    activeConsumersChange: string;
     systemLoad: string;
     memoryUsage: {
       used: string;
@@ -47,18 +50,9 @@ interface DashboardStats {
   }>;
 }
 
-const mockChartData = [
-  { day: 'Mon', Bookings: 42, Revenue: 21000 },
-  { day: 'Tue', Bookings: 58, Revenue: 29000 },
-  { day: 'Wed', Bookings: 69, Revenue: 34500 },
-  { day: 'Thu', Bookings: 50, Revenue: 25000 },
-  { day: 'Fri', Bookings: 85, Revenue: 42500 },
-  { day: 'Sat', Bookings: 110, Revenue: 55000 },
-  { day: 'Sun', Bookings: 95, Revenue: 47500 },
-];
-
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardStats | null>(null);
+  const [trends, setTrends] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,6 +65,11 @@ export default function DashboardPage() {
         setData(response.data);
       } else {
         setError(response.message);
+      }
+
+      const trendsResponse = await api.get<any[]>('/admin/analytics/trends');
+      if (trendsResponse.success && trendsResponse.data) {
+        setTrends(trendsResponse.data);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to sync with administration server');
@@ -128,7 +127,7 @@ export default function DashboardPage() {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-800 disabled:opacity-50 px-4 py-2.5 text-xs font-semibold text-zinc-300 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 hover:bg-zinc-850 disabled:opacity-50 px-4 py-2.5 text-xs font-semibold text-zinc-300 transition-colors"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh Telemetry
@@ -147,19 +146,31 @@ export default function DashboardPage() {
           title="Total Registered Accounts"
           value={data.stats.totalUsers.toLocaleString()}
           icon={<Users className="h-5 w-5" />}
-          change={{ value: '+12.4%', type: 'increase', label: 'vs last month' }}
+          change={{
+            value: data.stats.totalUsersChange,
+            type: data.stats.totalUsersChange.startsWith('-') ? 'decrease' : 'increase',
+            label: 'vs last month'
+          }}
         />
         <StatsCard
           title="Active Drone Providers"
           value={data.stats.activeProviders.toLocaleString()}
           icon={<Cpu className="h-5 w-5" />}
-          change={{ value: '+8.1%', type: 'increase', label: 'vs last month' }}
+          change={{
+            value: data.stats.activeProvidersChange,
+            type: data.stats.activeProvidersChange.startsWith('-') ? 'decrease' : 'increase',
+            label: 'vs last month'
+          }}
         />
         <StatsCard
           title="Active Service Consumers"
           value={data.stats.activeConsumers.toLocaleString()}
           icon={<User className="h-5 w-5" />}
-          change={{ value: '+14.2%', type: 'increase', label: 'vs last month' }}
+          change={{
+            value: data.stats.activeConsumersChange,
+            type: data.stats.activeConsumersChange.startsWith('-') ? 'decrease' : 'increase',
+            label: 'vs last month'
+          }}
         />
         <StatsCard
           title="Gateway CPU Load"
@@ -185,7 +196,7 @@ export default function DashboardPage() {
           </div>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
